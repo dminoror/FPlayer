@@ -36,12 +36,8 @@ namespace FPlayer
         Timer timerProgress;
         Timer timerVolumeListener;
         
-        //private AudioFileReader audioFile;
         string DBPath = "playlistDB.json";
-        List<fpPlaylist> playlists;
-        int playlistIndex = 0;
-        fpPlaylist playlist;
-        int playitemIndex = 0;
+        FPlayerDataBase playerDB;
 
         public MainWindow()
         {
@@ -50,8 +46,9 @@ namespace FPlayer
 
         private void Window_Drop(object sender, DragEventArgs e)
         {
-            if (playlistIndex >= playlists.Count) { return; }
-            fpPlaylist playlist = playlists[playlistIndex];
+            if (playerDB.playlistIndex >= playerDB.playlists.Count) { return; }
+            fpPlaylist playlist = playerDB.playlists[playerDB.playlistIndex];
+            int savedCount = playlist.list.Count;
             var paths = ((System.Array)e.Data.GetData(DataFormats.FileDrop));
             if (paths == null) { return; }
             for (int i = 0; i < paths.Length; i++)
@@ -74,6 +71,10 @@ namespace FPlayer
                     listItems.Items.Refresh();
                 }
             }
+            if (playlist.list.Count != savedCount)
+            {
+                playerDB.newRandomList();
+            }
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -86,12 +87,12 @@ namespace FPlayer
             {
                 initPlaylist();
             }
-            if (playlists.Count > 0)
+            if (playerDB.playlists.Count > 0)
             {
-                playlist = playlists[0];
-                for (int index = 0; index < playlist.list.Count; index++)
+                playerDB.playlist = playerDB.playlists[0];
+                for (int index = 0; index < playerDB.playlist.list.Count; index++)
                 {
-                    fpPlayItem playitem = playlist.list[index];
+                    fpPlayItem playitem = playerDB.playlist.list[index];
                     if (File.Exists(playitem.path))
                     {
                         Track track = new Track(playitem.path);
@@ -101,13 +102,13 @@ namespace FPlayer
                     }
                     else
                     {
-                        playlist.list.Remove(playitem);
+                        playerDB.playlist.list.Remove(playitem);
                         continue;
                     }
                 }
-                listItems.ItemsSource = playlist.list;
+                listItems.ItemsSource = playerDB.playlist.list;
             }
-            playlistIndex = 0;
+            playerDB.playlistIndex = 0;
 
             if (audioPlayer == null)
             {
@@ -181,14 +182,16 @@ namespace FPlayer
         }
         void initPlaylist()
         {
-            playlists = new List<fpPlaylist>();
+            playerDB = new FPlayerDataBase();
+            playerDB.playlists = new List<fpPlaylist>();
             fpPlaylist playlist = new fpPlaylist()
             {
                 name = "播放清單"
             };
-            playlist.list.Add(new fpPlayItem() { path = @"24. Life Will Change -instrumental version-.flac" });
-            playlists.Add(playlist);
-
+            playlist.list.Add(new fpPlayItem() { path = @"24. Life Will Change -instrumental version-.m4a" });
+            playerDB.playlists.Add(playlist);
+            playerDB.loopMode = PlayerLoopMode.Loop;
+            playerDB.RandomMode = PlayerRandomMode.Random;
             writeDB();
 
         }
@@ -196,7 +199,7 @@ namespace FPlayer
         {
             using (StreamWriter writer = new StreamWriter(DBPath, false))
             {
-                string jsonString = JsonConvert.SerializeObject(playlists);
+                string jsonString = JsonConvert.SerializeObject(playerDB);
                 writer.Write(jsonString);
             }
         }
@@ -205,7 +208,7 @@ namespace FPlayer
             using (StreamReader reader = new StreamReader(DBPath))
             {
                 string jsonString = reader.ReadToEnd();
-                playlists = JsonConvert.DeserializeObject<List<fpPlaylist>>(jsonString);
+                playerDB = JsonConvert.DeserializeObject<FPlayerDataBase>(jsonString);
             }
         }
         void loadPlayerItem()
@@ -215,11 +218,23 @@ namespace FPlayer
                 audioPlayer.Stop();
                 audioPlayerItem.Close();
             }
-            fpPlayItem playitem = playlist.list[playitemIndex];
+            fpPlayItem playitem;
+            listItems.SelectionChanged -= ListItems_SelectionChanged;
+            if (playerDB.RandomMode == PlayerRandomMode.Sequential)
+            {
+                playitem = playerDB.playlist.list[playerDB.playitemIndex];
+                listItems.SelectedIndex = playerDB.playitemIndex;
+            }
+            else
+            {
+                playitem = playerDB.randomList[playerDB.playitemIndex];
+                int realIndex = playerDB.playlist.list.IndexOf(playitem);
+                listItems.SelectedIndex = realIndex;
+            }
+            listItems.SelectionChanged += ListItems_SelectionChanged;
             audioPlayerItem = new AudioFileReader(playitem.path);
             sliderProgress.Maximum = audioPlayerItem.Length;
             playerItemTrack = new Track(playitem.path);
-            listItems.SelectedIndex = playitemIndex;
             audioPlayer.Init(audioPlayerItem);
         }
         void play()
@@ -231,6 +246,35 @@ namespace FPlayer
         {
             btnPausePlay.Content = "播放";
             audioPlayer.Pause();
+        }
+        void setLoopMode(PlayerLoopMode loopMode)
+        {
+            playerDB.loopMode = loopMode;
+            switch(loopMode)
+            {
+                case PlayerLoopMode.NoLoop:
+                    btnLoop.Content = "不循環";
+                    break;
+                case PlayerLoopMode.Loop:
+                    btnLoop.Content = "循環";
+                    break;
+                case PlayerLoopMode.SingleLoop:
+                    btnLoop.Content = "單曲";
+                    break;
+            }
+        }
+        void setRandomMode(PlayerRandomMode randomMode)
+        {
+            playerDB.RandomMode = randomMode;
+            switch(randomMode)
+            {
+                case PlayerRandomMode.Sequential:
+                    btnRandom.Content = "循序";
+                    break;
+                case PlayerRandomMode.Random:
+                    btnRandom.Content = "隨機";
+                    break;
+            }
         }
         /*
         private void AudioPlayer_PlaybackStopped(object sender, StoppedEventArgs e)
@@ -255,20 +299,20 @@ namespace FPlayer
         }
         private void BtnPrev_Click(object sender, RoutedEventArgs e)
         {
-            playitemIndex--;
-            if (playitemIndex < 0)
+            playerDB.playitemIndex--;
+            if (playerDB.playitemIndex < 0)
             {
-                playitemIndex = playlist.list.Count - 1;
+                playerDB.playitemIndex = playerDB.playlist.list.Count - 1;
             }
             loadPlayerItem();
             play();
         }
         private void BtnNext_Click(object sender, RoutedEventArgs e)
         {
-            playitemIndex++;
-            if (playitemIndex >= playlist.list.Count)
+            playerDB.playitemIndex++;
+            if (playerDB.playitemIndex >= playerDB.playlist.list.Count)
             {
-                playitemIndex = 0;
+                playerDB.playitemIndex = 0;
             }
             loadPlayerItem();
             play();
@@ -281,12 +325,12 @@ namespace FPlayer
 
         private void BtnRandom_Click(object sender, RoutedEventArgs e)
         {
-
+            setRandomMode((PlayerRandomMode)(((int)playerDB.RandomMode + 1) % 2));
         }
 
         private void BtnLoop_Click(object sender, RoutedEventArgs e)
         {
-
+            setLoopMode((PlayerLoopMode)(((int)playerDB.loopMode + 1) % 3));
         }
 
         private void SliderProgress_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
@@ -296,13 +340,18 @@ namespace FPlayer
 
         private void ListItems_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (playitemIndex != listItems.SelectedIndex)
+            if (playerDB.RandomMode == PlayerRandomMode.Random)
             {
-                playitemIndex = listItems.SelectedIndex;
-                audioPlayer.Stop();
-                loadPlayerItem();
-                play();
+                fpPlayItem playitem = playerDB.playlist.list[listItems.SelectedIndex];
+                playerDB.playitemIndex = Array.IndexOf(playerDB.randomList, playitem);
             }
+            else
+            {
+                playerDB.playitemIndex = listItems.SelectedIndex;
+            }
+            audioPlayer.Stop();
+            loadPlayerItem();
+            play();
         }
     }
 }
