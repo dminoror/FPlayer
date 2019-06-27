@@ -126,10 +126,6 @@ namespace FPlayer
                             {
                                 BtnNext_Click(null, null);
                             }
-                            if (audioPlayer.PlaybackState == PlaybackState.Playing)
-                                btnPausePlay.Content = "暫停";
-                            else
-                                btnPausePlay.Content = "播放";
                         });
                     }
                     
@@ -167,6 +163,7 @@ namespace FPlayer
                                     audioPlayerItem != null &&
                                     autoPause)
                                 {
+                                    autoPause = false;
                                     audioPlayer.Play();
                                 }
                             }
@@ -225,6 +222,16 @@ namespace FPlayer
             listItems.SelectedIndex = playitemIndex;
             audioPlayer.Init(audioPlayerItem);
         }
+        void play()
+        {
+            btnPausePlay.Content = "暫停";
+            audioPlayer.Play();
+        }
+        void pause()
+        {
+            btnPausePlay.Content = "播放";
+            audioPlayer.Pause();
+        }
         /*
         private void AudioPlayer_PlaybackStopped(object sender, StoppedEventArgs e)
         {
@@ -235,7 +242,7 @@ namespace FPlayer
         {
             if (audioPlayer.PlaybackState == PlaybackState.Playing)
             {
-                audioPlayer.Pause();
+                pause();
             }
             else
             {
@@ -243,7 +250,7 @@ namespace FPlayer
                 {
                     loadPlayerItem();
                 }
-                audioPlayer.Play();
+                play();
             }
         }
         private void BtnPrev_Click(object sender, RoutedEventArgs e)
@@ -254,7 +261,7 @@ namespace FPlayer
                 playitemIndex = playlist.list.Count - 1;
             }
             loadPlayerItem();
-            audioPlayer.Play();
+            play();
         }
         private void BtnNext_Click(object sender, RoutedEventArgs e)
         {
@@ -264,10 +271,11 @@ namespace FPlayer
                 playitemIndex = 0;
             }
             loadPlayerItem();
-            audioPlayer.Play();
+            play();
         }
         private void BtnStop_Click(object sender, RoutedEventArgs e)
         {
+            btnPausePlay.Content = "播放";
             audioPlayer.Stop();
         }
 
@@ -293,7 +301,7 @@ namespace FPlayer
                 playitemIndex = listItems.SelectedIndex;
                 audioPlayer.Stop();
                 loadPlayerItem();
-                audioPlayer.Play();
+                play();
             }
         }
     }
