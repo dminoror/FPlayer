@@ -235,6 +235,23 @@ namespace FPlayer
             audioPlayerItem = new AudioFileReader(playitem.path);
             sliderProgress.Maximum = audioPlayerItem.Length;
             playerItemTrack = new Track(playitem.path);
+            tbTitle.Text = playerItemTrack.Title;
+            tbAlbum.Text = playerItemTrack.Album;
+            tbArtist.Text = playerItemTrack.Artist;
+            //System.Drawing.Image image = System.Drawing.Image.FromStream(new System.IO.MemoryStream(pic.PictureData));
+            if (playerItemTrack.EmbeddedPictures.Count > 0)
+            {
+                PictureInfo pic = playerItemTrack.EmbeddedPictures[0];
+                using (var ms = new MemoryStream(pic.PictureData))
+                {
+                    var bi = new BitmapImage();
+                    bi.BeginInit();
+                    bi.CacheOption = BitmapCacheOption.OnLoad;
+                    bi.StreamSource = ms;
+                    bi.EndInit();
+                    imageCover.Source = bi;
+                }
+             }
             audioPlayer.Init(audioPlayerItem);
         }
         void play()
