@@ -56,7 +56,7 @@
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="80"/>
                     </Grid.ColumnDefinitions>
                     <Grid>
                         <Grid.RowDefinitions>
@@ -67,6 +67,14 @@
                         <TextBlock TextAlignment="Left" VerticalAlignment="Center" x:Name="tbTitle"/>
                         <TextBlock TextAlignment="Left" VerticalAlignment="Center" x:Name="tbAlbum" Grid.Row="1"/>
                         <TextBlock TextAlignment="Left" VerticalAlignment="Center" x:Name="tbArtist" Grid.Row="2"/>
+                    </Grid>
+                    <Grid Grid.Column="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <CheckBox VerticalAlignment="Center" HorizontalAlignment="Center" Content="自動暫停"/>
+                        <Button Grid.Row="1" Content="設定" Click="btnAutoPauseOption_Clicked"/>
                     </Grid>
                 </Grid>
                 <Grid Grid.Row="1">

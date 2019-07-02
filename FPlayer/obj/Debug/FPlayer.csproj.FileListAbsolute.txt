@@ -19,3 +19,7 @@ C:\Users\DoubleLight\Desktop\Tool\FPlayer\FPlayer\obj\Debug\FPlayer.pdb
 C:\Users\DoubleLight\Desktop\Tool\FPlayer\FPlayer\bin\Debug\Newtonsoft.Json.dll
 C:\Users\DoubleLight\Desktop\Tool\FPlayer\FPlayer\bin\Debug\Newtonsoft.Json.xml
 C:\Users\DoubleLight\Desktop\Tool\FPlayer\FPlayer\bin\Debug\ATL.dll
+C:\Users\DoubleLight\Desktop\Tool\FPlayer\FPlayer\obj\Debug\AutoPauseOption.g.cs
+C:\Users\DoubleLight\Desktop\Tool\FPlayer\FPlayer\obj\Debug\AutoPauseOption.baml
+C:\Users\DoubleLight\Desktop\Tool\FPlayer\FPlayer\obj\Debug\IgnoreOption.g.cs
+C:\Users\DoubleLight\Desktop\Tool\FPlayer\FPlayer\obj\Debug\IgnoreOption.baml

@@ -87,6 +87,7 @@ namespace FPlayer
             {
                 initPlaylist();
             }
+            playerDB.checkDB();
             if (playerDB.playlists.Count > 0)
             {
                 playerDB.playlist = playerDB.playlists[0];
@@ -145,34 +146,72 @@ namespace FPlayer
                                 {
                                     if (session.AudioMeterInformation.MasterPeakValue > 0.1)
                                     {
-                                        foundOtherVolume = true;
-                                        break;
+                                        var ignores = playerDB.ignores.Where(pauseIgnore => pauseIgnore.path == session.GetSessionIdentifier);
+                                        bool foundIgnore = false;
+                                        bool existIgnore = ignores.Count() > 0;
+                                        foreach (PauseIgnore pauseIgnore in ignores)
+                                        {
+                                            if (pauseIgnore.enable)
+                                            {
+                                                foundIgnore = true;
+                                            }
+                                        }
+                                        if (!foundIgnore)
+                                        {
+                                            foundOtherVolume = true;
+                                        }
+                                        if (!existIgnore)
+                                        {
+                                            bool foundRecently = playerDB.recentlyIgnores.Where(pauseIgnore => pauseIgnore.path == session.GetSessionIdentifier).Count() > 0;
+                                            if (!foundRecently)
+                                            {
+                                                string sessionId;
+                                                if (session.IconPath.Contains(@"System32\AudioSrv.Dll"))
+                                                {
+                                                    sessionId = "系統音效";
+                                                }
+                                                else
+                                                {
+                                                    var sessionSplit = session.GetSessionIdentifier.Split(new string[] { @"\" }, StringSplitOptions.RemoveEmptyEntries);
+                                                    if (sessionSplit.Length > 0)
+                                                        sessionId = sessionSplit.Last().Split(new string[] { @"%b" }, StringSplitOptions.RemoveEmptyEntries).First();
+                                                    else
+                                                        sessionId = session.GetSessionIdentifier;
+                                                }
+                                                PauseIgnore pauseIgnore = new PauseIgnore()
+                                                {
+                                                    title = sessionId,
+                                                    path = session.GetSessionIdentifier,
+                                                    enable = false
+                                                };
+                                                playerDB.recentlyIgnores.Add(pauseIgnore);
+                                            }
+                                        }
                                     }
                                 }
-                            }
-                            if (foundOtherVolume)
-                            {
-                                if (audioPlayer.PlaybackState == PlaybackState.Playing)
+                                if (foundOtherVolume)
                                 {
-                                    autoPause = true;
-                                    audioPlayer.Pause();
+                                    if (audioPlayer.PlaybackState == PlaybackState.Playing)
+                                    {
+                                        autoPause = true;
+                                        audioPlayer.Pause();
+                                    }
                                 }
-                            }
-                            else
-                            {
-                                if (audioPlayer.PlaybackState == PlaybackState.Paused && 
-                                    audioPlayerItem != null &&
-                                    autoPause)
+                                else
                                 {
-                                    autoPause = false;
-                                    audioPlayer.Play();
+                                    if (audioPlayer.PlaybackState == PlaybackState.Paused &&
+                                        audioPlayerItem != null &&
+                                        autoPause)
+                                    {
+                                        autoPause = false;
+                                        audioPlayer.Play();
+                                    }
                                 }
                             }
                         }
                     });
 
                 }, null, 0, 100);
-
         }
 
 
@@ -238,7 +277,6 @@ namespace FPlayer
             tbTitle.Text = playerItemTrack.Title;
             tbAlbum.Text = playerItemTrack.Album;
             tbArtist.Text = playerItemTrack.Artist;
-            //System.Drawing.Image image = System.Drawing.Image.FromStream(new System.IO.MemoryStream(pic.PictureData));
             if (playerItemTrack.EmbeddedPictures.Count > 0)
             {
                 PictureInfo pic = playerItemTrack.EmbeddedPictures[0];
@@ -348,6 +386,11 @@ namespace FPlayer
         private void BtnLoop_Click(object sender, RoutedEventArgs e)
         {
             setLoopMode((PlayerLoopMode)(((int)playerDB.loopMode + 1) % 3));
+        }
+        private void btnAutoPauseOption_Clicked(object sender, RoutedEventArgs e)
+        {
+            AutoPauseOption page = new AutoPauseOption(playerDB);
+            page.ShowDialog();
         }
 
         private void SliderProgress_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)

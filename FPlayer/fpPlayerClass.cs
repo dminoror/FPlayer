@@ -20,6 +20,37 @@ namespace FPlayer
         public int playitemIndex = 0;
         public PlayerLoopMode loopMode;
         private PlayerRandomMode randomMode;
+
+        public List<PauseIgnore> ignores;
+        [JsonIgnore]
+        public List<PauseIgnore> recentlyIgnores = new List<PauseIgnore>();
+
+        public void checkDB()
+        {
+            if (ignores == null)
+                ignores = new List<PauseIgnore>();
+            /*
+            bool foundSystemSound = false;
+            foreach (PauseIgnore ignore in ignores)
+            {
+                if (ignore.path.Contains(@"System32\\AudioSrv.Dll"))
+                {
+                    foundSystemSound = true;
+                    break;
+                }
+            }
+            if (!foundSystemSound)
+            {
+                PauseIgnore ignore = new PauseIgnore()
+                {
+                    title = "系統音效",
+                    path = @"System32\\AudioSrv.Dll",
+                    enable = true
+                };
+                ignores.Insert(0, ignore);
+            }*/
+        }
+
         public PlayerRandomMode RandomMode
         {
             get { return randomMode; }
@@ -49,8 +80,6 @@ namespace FPlayer
                 randomList[randomIndex] = item1;
             }
         }
-
-
     }
     public class fpPlaylist
     {
@@ -78,5 +107,11 @@ namespace FPlayer
     {
         Sequential = 0,
         Random
+    }
+    public class PauseIgnore
+    {
+        public string title;
+        public string path;
+        public bool enable;
     }
 }
