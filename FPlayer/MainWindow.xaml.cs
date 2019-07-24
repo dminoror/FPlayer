@@ -258,7 +258,6 @@ namespace FPlayer
                 audioPlayerItem.Close();
             }
             fpPlayItem playitem;
-            listItems.SelectionChanged -= ListItems_SelectionChanged;
             if (playerDB.RandomMode == PlayerRandomMode.Sequential)
             {
                 playitem = playerDB.playlist.list[playerDB.playitemIndex];
@@ -270,7 +269,6 @@ namespace FPlayer
                 int realIndex = playerDB.playlist.list.IndexOf(playitem);
                 listItems.SelectedIndex = realIndex;
             }
-            listItems.SelectionChanged += ListItems_SelectionChanged;
             audioPlayerItem = new AudioFileReader(playitem.path);
             sliderProgress.Maximum = audioPlayerItem.Length;
             playerItemTrack = new Track(playitem.path);
@@ -398,7 +396,7 @@ namespace FPlayer
             audioPlayerItem.Position = (long)sliderProgress.Value;
         }
 
-        private void ListItems_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void ListItems_DoubleClicked(object sender, MouseButtonEventArgs e)
         {
             if (playerDB.RandomMode == PlayerRandomMode.Random)
             {

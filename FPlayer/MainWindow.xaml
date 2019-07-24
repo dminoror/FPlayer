@@ -13,7 +13,7 @@
         </Grid.RowDefinitions>
         <Grid>
 
-            <ListView x:Name="listItems" SelectionChanged="ListItems_SelectionChanged">
+            <ListView x:Name="listItems" MouseDoubleClick="ListItems_DoubleClicked">
                 <ListView.View>
                     <GridView>
                         <GridViewColumn Header="Name" Width="300" DisplayMemberBinding="{Binding Name}">
