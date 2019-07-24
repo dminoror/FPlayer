@@ -7,8 +7,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -34,7 +34,8 @@ namespace FPlayer
         PlayerState playerState = PlayerState.Stop;
 
         Timer timerProgress;
-        Timer timerVolumeListener;
+        Timer timerAutoPause = null;
+        int autoPauseGap = 3000;
         
         string DBPath = "playlistDB.json";
         FPlayerDataBase playerDB;
@@ -117,106 +118,132 @@ namespace FPlayer
                 //audioPlayer.PlaybackStopped += AudioPlayer_PlaybackStopped;
             }
 
-            timerProgress = new Timer(
-                (ignore) =>
-                {
-                    if (audioPlayerItem != null)
+            timerProgress = new Timer();
+            timerProgress.Interval = 1000;
+            timerProgress.AutoReset = true;
+            timerProgress.Elapsed += TimerProgress_Elapsed;
+            timerProgress.Start();
+            activeAutoPauseTimer(null, null);
+        }
+
+        private void TimerProgress_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            if (audioPlayerItem != null)
+            {
+                Dispatcher.Invoke((Action)delegate () {
+                    sliderProgress.Value = audioPlayerItem.Position;
+                    if (audioPlayerItem.Length - audioPlayerItem.Position < 1)
                     {
-                        Dispatcher.Invoke((Action)delegate () {
-                            sliderProgress.Value = audioPlayerItem.Position;
-                            if (audioPlayerItem.Length - audioPlayerItem.Position < 1)
-                            {
-                                BtnNext_Click(null, null);
-                            }
-                        });
+                        BtnNext_Click(null, null);
                     }
-                    
-                }, null, 0, 1000);
-            timerVolumeListener = new Timer(
-                (ignore) =>
+                });
+            }
+        }
+
+        void activeAutoPauseTimer(object sender, ElapsedEventArgs e)
+        {
+            if (sender != null)
+            {
+                ((Timer)sender).Dispose();
+            }
+            timerAutoPause = new Timer();
+            timerAutoPause.Interval = 100;
+            timerAutoPause.AutoReset = true;
+            timerAutoPause.Elapsed += TimerAutoPause_Elapsed;
+            timerAutoPause.Start();
+        }
+        private void TimerAutoPause_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            Dispatcher.Invoke((Action)delegate () {
+                using (MMDevice defaultDevice = devEnum.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia))
                 {
-                    Dispatcher.Invoke((Action)delegate () {
-                        using (MMDevice defaultDevice = devEnum.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia))
+                    bool foundOtherVolume = false;
+                    for (int index = 0; index < defaultDevice.AudioSessionManager.Sessions.Count; index++)
+                    {
+                        var session = defaultDevice.AudioSessionManager.Sessions[index];
+                        if (!session.GetSessionIdentifier.Contains("FPlayer.exe"))
                         {
-                            bool foundOtherVolume = false;
-                            for (int index = 0; index < defaultDevice.AudioSessionManager.Sessions.Count; index++)
+                            if (session.AudioMeterInformation.MasterPeakValue > 0.1)
                             {
-                                var session = defaultDevice.AudioSessionManager.Sessions[index];
-                                if (!session.GetSessionIdentifier.Contains("FPlayer.exe"))
+                                var ignores = playerDB.ignores.Where(pauseIgnore => pauseIgnore.path == session.GetSessionIdentifier);
+                                bool foundIgnore = false;
+                                bool existIgnore = ignores.Count() > 0;
+                                foreach (PauseIgnore pauseIgnore in ignores)
                                 {
-                                    if (session.AudioMeterInformation.MasterPeakValue > 0.1)
+                                    if (pauseIgnore.enable)
                                     {
-                                        var ignores = playerDB.ignores.Where(pauseIgnore => pauseIgnore.path == session.GetSessionIdentifier);
-                                        bool foundIgnore = false;
-                                        bool existIgnore = ignores.Count() > 0;
-                                        foreach (PauseIgnore pauseIgnore in ignores)
-                                        {
-                                            if (pauseIgnore.enable)
-                                            {
-                                                foundIgnore = true;
-                                            }
-                                        }
-                                        if (!foundIgnore)
-                                        {
-                                            foundOtherVolume = true;
-                                        }
-                                        if (!existIgnore)
-                                        {
-                                            bool foundRecently = playerDB.recentlyIgnores.Where(pauseIgnore => pauseIgnore.path == session.GetSessionIdentifier).Count() > 0;
-                                            if (!foundRecently)
-                                            {
-                                                string sessionId;
-                                                if (session.IconPath.Contains(@"System32\AudioSrv.Dll"))
-                                                {
-                                                    sessionId = "系統音效";
-                                                }
-                                                else
-                                                {
-                                                    var sessionSplit = session.GetSessionIdentifier.Split(new string[] { @"\" }, StringSplitOptions.RemoveEmptyEntries);
-                                                    if (sessionSplit.Length > 0)
-                                                        sessionId = sessionSplit.Last().Split(new string[] { @"%b" }, StringSplitOptions.RemoveEmptyEntries).First();
-                                                    else
-                                                        sessionId = session.GetSessionIdentifier;
-                                                }
-                                                PauseIgnore pauseIgnore = new PauseIgnore()
-                                                {
-                                                    title = sessionId,
-                                                    path = session.GetSessionIdentifier,
-                                                    enable = false
-                                                };
-                                                playerDB.recentlyIgnores.Add(pauseIgnore);
-                                            }
-                                        }
+                                        foundIgnore = true;
                                     }
                                 }
-                                if (foundOtherVolume)
+                                if (!foundIgnore)
                                 {
-                                    if (audioPlayer.PlaybackState == PlaybackState.Playing)
-                                    {
-                                        playerState = PlayerState.AutoPause;
-                                        audioPlayer.Pause();
-                                    }
+                                    foundOtherVolume = true;
                                 }
-                                else
+                                if (!existIgnore)
                                 {
-                                    if (audioPlayer.PlaybackState == PlaybackState.Paused &&
-                                        audioPlayerItem != null &&
-                                        playerState == PlayerState.AutoPause)
+                                    bool foundRecently = playerDB.recentlyIgnores.Where(pauseIgnore => pauseIgnore.path == session.GetSessionIdentifier).Count() > 0;
+                                    if (!foundRecently)
                                     {
-                                        playerState = PlayerState.Playing;
-                                        audioPlayer.Play();
+                                        string sessionId;
+                                        if (session.IconPath.Contains(@"System32\AudioSrv.Dll"))
+                                        {
+                                            sessionId = "系統音效";
+                                        }
+                                        else
+                                        {
+                                            var sessionSplit = session.GetSessionIdentifier.Split(new string[] { @"\" }, StringSplitOptions.RemoveEmptyEntries);
+                                            if (sessionSplit.Length > 0)
+                                                sessionId = sessionSplit.Last().Split(new string[] { @"%b" }, StringSplitOptions.RemoveEmptyEntries).First();
+                                            else
+                                                sessionId = session.GetSessionIdentifier;
+                                        }
+                                        PauseIgnore pauseIgnore = new PauseIgnore()
+                                        {
+                                            title = sessionId,
+                                            path = session.GetSessionIdentifier,
+                                            enable = false
+                                        };
+                                        playerDB.recentlyIgnores.Add(pauseIgnore);
                                     }
                                 }
                             }
                         }
-                    });
-
-                }, null, 0, 100);
+                        if (foundOtherVolume)
+                        {
+                            if (audioPlayer.PlaybackState == PlaybackState.Playing)
+                            {
+                                playerState = PlayerState.AutoPause;
+                                audioPlayer.Pause();
+                                timerAutoPause.Stop();
+                                timerAutoPause.Dispose();
+                                Timer timerRestart = new Timer();
+                                timerRestart.Interval = autoPauseGap;
+                                timerRestart.Elapsed += activeAutoPauseTimer;
+                                timerRestart.AutoReset = false;
+                                timerRestart.Start();
+                            }
+                        }
+                        else
+                        {
+                            if (audioPlayer.PlaybackState == PlaybackState.Paused &&
+                                audioPlayerItem != null &&
+                                playerState == PlayerState.AutoPause)
+                            {
+                                playerState = PlayerState.Playing;
+                                audioPlayer.Play();
+                            }
+                        }
+                    }
+                }
+            });
         }
-
 
         private void Window_Closed(object sender, EventArgs e)
         {
+            timerAutoPause.Stop();
+            timerAutoPause.Dispose();
+            timerProgress.Stop();
+            timerProgress.Dispose();
             writeDB();
         }
         void initPlaylist()
@@ -238,8 +265,19 @@ namespace FPlayer
         {
             using (StreamWriter writer = new StreamWriter(DBPath, false))
             {
+                int playitemIndex = -1;
+                if (playerDB.RandomMode == PlayerRandomMode.Random)
+                {
+                    playitemIndex = playerDB.playitemIndex;
+                    fpPlayItem playItem = playerDB.randomList[playitemIndex];
+                    playerDB.playitemIndex = playerDB.playlist.list.IndexOf(playItem);
+                }
                 string jsonString = JsonConvert.SerializeObject(playerDB);
                 writer.Write(jsonString);
+                if (playitemIndex != -1)
+                {
+                    playerDB.playitemIndex = playitemIndex;
+                }
             }
         }
         void readDB()
@@ -258,7 +296,11 @@ namespace FPlayer
                 audioPlayerItem.Close();
             }
             fpPlayItem playitem;
-            if (playerDB.RandomMode == PlayerRandomMode.Sequential)
+            if (audioPlayerItem == null && listItems.SelectedIndex != -1)
+            {
+                playitem = playerDB.playlist.list[listItems.SelectedIndex];
+            }
+            else if (playerDB.RandomMode == PlayerRandomMode.Sequential)
             {
                 playitem = playerDB.playlist.list[playerDB.playitemIndex];
                 listItems.SelectedIndex = playerDB.playitemIndex;
