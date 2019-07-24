@@ -29,26 +29,6 @@ namespace FPlayer
         {
             if (ignores == null)
                 ignores = new List<PauseIgnore>();
-            /*
-            bool foundSystemSound = false;
-            foreach (PauseIgnore ignore in ignores)
-            {
-                if (ignore.path.Contains(@"System32\\AudioSrv.Dll"))
-                {
-                    foundSystemSound = true;
-                    break;
-                }
-            }
-            if (!foundSystemSound)
-            {
-                PauseIgnore ignore = new PauseIgnore()
-                {
-                    title = "系統音效",
-                    path = @"System32\\AudioSrv.Dll",
-                    enable = true
-                };
-                ignores.Insert(0, ignore);
-            }*/
         }
 
         public PlayerRandomMode RandomMode
@@ -107,6 +87,13 @@ namespace FPlayer
     {
         Sequential = 0,
         Random
+    }
+    public enum PlayerState
+    {
+        Stop = 0,
+        Pause,
+        Playing,
+        AutoPause,
     }
     public class PauseIgnore
     {

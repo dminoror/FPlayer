@@ -31,7 +31,7 @@ namespace FPlayer
         Track playerItemTrack;
 
         MMDeviceEnumerator devEnum = new MMDeviceEnumerator();
-        bool autoPause = false;
+        PlayerState playerState = PlayerState.Stop;
 
         Timer timerProgress;
         Timer timerVolumeListener;
@@ -193,7 +193,7 @@ namespace FPlayer
                                 {
                                     if (audioPlayer.PlaybackState == PlaybackState.Playing)
                                     {
-                                        autoPause = true;
+                                        playerState = PlayerState.AutoPause;
                                         audioPlayer.Pause();
                                     }
                                 }
@@ -201,9 +201,9 @@ namespace FPlayer
                                 {
                                     if (audioPlayer.PlaybackState == PlaybackState.Paused &&
                                         audioPlayerItem != null &&
-                                        autoPause)
+                                        playerState == PlayerState.AutoPause)
                                     {
-                                        autoPause = false;
+                                        playerState = PlayerState.Playing;
                                         audioPlayer.Play();
                                     }
                                 }
@@ -294,11 +294,19 @@ namespace FPlayer
         {
             btnPausePlay.Content = "暫停";
             audioPlayer.Play();
+            playerState = PlayerState.Playing;
         }
         void pause()
         {
             btnPausePlay.Content = "播放";
             audioPlayer.Pause();
+            playerState = PlayerState.Pause;
+        }
+        void stop()
+        {
+            btnPausePlay.Content = "播放";
+            audioPlayer.Stop();
+            playerState = PlayerState.Stop;
         }
         void setLoopMode(PlayerLoopMode loopMode)
         {
@@ -337,7 +345,8 @@ namespace FPlayer
 
         private void BtnPausePlay_Click(object sender, RoutedEventArgs e)
         {
-            if (audioPlayer.PlaybackState == PlaybackState.Playing)
+            if (playerState == PlayerState.Playing ||
+                playerState == PlayerState.AutoPause)
             {
                 pause();
             }
@@ -372,8 +381,7 @@ namespace FPlayer
         }
         private void BtnStop_Click(object sender, RoutedEventArgs e)
         {
-            btnPausePlay.Content = "播放";
-            audioPlayer.Stop();
+            stop();
         }
 
         private void BtnRandom_Click(object sender, RoutedEventArgs e)
