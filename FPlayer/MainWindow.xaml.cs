@@ -84,10 +84,12 @@ namespace FPlayer
             {
                 readDB();
             }
-            else
+            if (playerDB == null)
             {
                 initPlaylist();
             }
+            setRandomMode(playerDB.RandomMode);
+            setLoopMode(playerDB.loopMode);
             playerDB.checkDB();
             if (playerDB.playlists.Count > 0)
             {
@@ -296,9 +298,21 @@ namespace FPlayer
                 audioPlayerItem.Close();
             }
             fpPlayItem playitem;
-            if (audioPlayerItem == null && listItems.SelectedIndex != -1)
+            if (audioPlayerItem == null)
             {
-                playitem = playerDB.playlist.list[listItems.SelectedIndex];
+                if (listItems.SelectedIndex == -1)
+                {
+                    playitem = playerDB.playlist.list[playerDB.playitemIndex];
+                    listItems.SelectedIndex = playerDB.playitemIndex;
+                    if (playerDB.RandomMode == PlayerRandomMode.Random)
+                    {
+                        playerDB.playitemIndex = Array.IndexOf(playerDB.randomList, playitem);
+                    }
+                }
+                else
+                {
+                    playitem = playerDB.playlist.list[listItems.SelectedIndex];
+                }
             }
             else if (playerDB.RandomMode == PlayerRandomMode.Sequential)
             {
@@ -413,10 +427,19 @@ namespace FPlayer
         }
         private void BtnNext_Click(object sender, RoutedEventArgs e)
         {
+            fpPlayItem playitem = playerDB.getCurrentItem();
             playerDB.playitemIndex++;
             if (playerDB.playitemIndex >= playerDB.playlist.list.Count)
             {
                 playerDB.playitemIndex = 0;
+                if (playerDB.RandomMode == PlayerRandomMode.Random)
+                {
+                    playerDB.newRandomList();
+                    if (playerDB.randomList[0] == playitem && playerDB.playlist.list.Count > 1)
+                    {
+                        playerDB.playitemIndex++;
+                    }
+                }
             }
             loadPlayerItem();
             play();

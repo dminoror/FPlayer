@@ -60,6 +60,18 @@ namespace FPlayer
                 randomList[randomIndex] = item1;
             }
         }
+
+        public fpPlayItem getCurrentItem()
+        {
+            if (RandomMode == PlayerRandomMode.Random)
+            {
+                return randomList[playitemIndex];
+            }
+            else
+            {
+                return playlist.list[playitemIndex];
+            }
+        }
     }
     public class fpPlaylist
     {
