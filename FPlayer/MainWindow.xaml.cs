@@ -35,14 +35,19 @@ namespace FPlayer
 
         Timer timerProgress;
         Timer timerAutoPause = null;
-        int autoPauseGap = 3000;
+        DateTime autoPauseTime;
+        double autoPauseGap = 3;
         
         string DBPath = "playlistDB.json";
         FPlayerDataBase playerDB;
 
+        GlobalKeyboardHook hooker;
+
         public MainWindow()
         {
             InitializeComponent();
+            hooker = new GlobalKeyboardHook();
+            hooker.KeyboardPressed += OnKeyPressed;
         }
 
         private void Window_Drop(object sender, DragEventArgs e)
@@ -144,10 +149,6 @@ namespace FPlayer
 
         void activeAutoPauseTimer(object sender, ElapsedEventArgs e)
         {
-            if (sender != null)
-            {
-                ((Timer)sender).Dispose();
-            }
             timerAutoPause = new Timer();
             timerAutoPause.Interval = 100;
             timerAutoPause.AutoReset = true;
@@ -212,22 +213,18 @@ namespace FPlayer
                         }
                         if (foundOtherVolume)
                         {
+                            autoPauseTime = DateTime.Now;
                             if (audioPlayer.PlaybackState == PlaybackState.Playing)
                             {
                                 playerState = PlayerState.AutoPause;
                                 audioPlayer.Pause();
-                                timerAutoPause.Stop();
-                                timerAutoPause.Dispose();
-                                Timer timerRestart = new Timer();
-                                timerRestart.Interval = autoPauseGap;
-                                timerRestart.Elapsed += activeAutoPauseTimer;
-                                timerRestart.AutoReset = false;
-                                timerRestart.Start();
                             }
                         }
                         else
                         {
-                            if (audioPlayer.PlaybackState == PlaybackState.Paused &&
+                            TimeSpan distance = DateTime.Now - autoPauseTime;
+                            if (distance.TotalSeconds > autoPauseGap &&
+                                audioPlayer.PlaybackState == PlaybackState.Paused &&
                                 audioPlayerItem != null &&
                                 playerState == PlayerState.AutoPause)
                             {
@@ -238,6 +235,34 @@ namespace FPlayer
                     }
                 }
             });
+        }
+        private void OnKeyPressed(object sender, GlobalKeyboardHookEventArgs e)
+        {
+            System.Windows.Forms.Keys key = (System.Windows.Forms.Keys)e.KeyboardData.VirtualCode;
+            if (e.KeyboardState == GlobalKeyboardHook.KeyboardState.KeyDown)
+            {
+                if (key == System.Windows.Forms.Keys.Oemcomma)
+                {
+                    if (audioPlayer.PlaybackState == PlaybackState.Playing)
+                    {
+                        playerState = PlayerState.KeyboardPause;
+                        audioPlayer.Pause();
+                    }
+                }
+            }
+            else if (e.KeyboardState == GlobalKeyboardHook.KeyboardState.KeyUp)
+            {
+                if (key == System.Windows.Forms.Keys.Oemcomma)
+                {
+                    if (audioPlayer.PlaybackState == PlaybackState.Paused &&
+                                audioPlayerItem != null &&
+                                playerState == PlayerState.KeyboardPause)
+                    {
+                        playerState = PlayerState.Playing;
+                        audioPlayer.Play();
+                    }
+                } 
+            }
         }
 
         private void Window_Closed(object sender, EventArgs e)
@@ -336,12 +361,19 @@ namespace FPlayer
                 PictureInfo pic = playerItemTrack.EmbeddedPictures[0];
                 using (var ms = new MemoryStream(pic.PictureData))
                 {
-                    var bi = new BitmapImage();
-                    bi.BeginInit();
-                    bi.CacheOption = BitmapCacheOption.OnLoad;
-                    bi.StreamSource = ms;
-                    bi.EndInit();
-                    imageCover.Source = bi;
+                    try
+                    {
+                        var bi = new BitmapImage();
+                        bi.BeginInit();
+                        bi.CacheOption = BitmapCacheOption.OnLoad;
+                        bi.StreamSource = ms;
+                        bi.EndInit();
+                        imageCover.Source = bi;
+                    }
+                    catch (Exception ex)
+                    {
+
+                    }
                 }
              }
             audioPlayer.Init(audioPlayerItem);

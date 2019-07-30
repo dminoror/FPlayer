@@ -106,6 +106,7 @@ namespace FPlayer
         Pause,
         Playing,
         AutoPause,
+        KeyboardPause
     }
     public class PauseIgnore
     {

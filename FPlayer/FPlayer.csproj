@@ -85,6 +85,7 @@
       <DependentUpon>AutoPauseOption.xaml</DependentUpon>
     </Compile>
     <Compile Include="fpPlayerClass.cs" />
+    <Compile Include="GlobalKeyboard.cs" />
     <Compile Include="IgnoreOption.xaml.cs">
       <DependentUpon>IgnoreOption.xaml</DependentUpon>
     </Compile>
