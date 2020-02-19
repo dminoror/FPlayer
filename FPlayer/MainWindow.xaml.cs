@@ -516,5 +516,35 @@ namespace FPlayer
             loadPlayerItem();
             play();
         }
+
+        private void listItems_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Delete)
+            {
+                if (listItems.SelectedIndex >= 0)
+                {
+                    fpPlaylist playlist = playerDB.playlists[playerDB.playlistIndex];
+                    fpPlayItem playItem = playlist.list[listItems.SelectedIndex];
+                    bool shouldResume = false;
+                    if (playerDB.getCurrentItem() == playItem)
+                    {
+                        stop();
+                        shouldResume = true;
+                    }
+                    playlist.list.RemoveAt(listItems.SelectedIndex);
+                    playerDB.newRandomList();
+                    listItems.Items.Refresh();
+                    if (shouldResume)
+                    {
+                        if (playerDB.playitemIndex >= playlist.list.Count)
+                        {
+                            playerDB.playitemIndex = 0;
+                        }
+                        loadPlayerItem();
+                        play();
+                    }
+                }
+            }
+        }
     }
 }
