@@ -17,6 +17,7 @@ namespace FPlayer
         [JsonIgnore]
         public fpPlayItem[] randomList;
 
+        public float volume = 1.0F;
         public int playitemIndex = 0;
         public PlayerLoopMode loopMode;
         private PlayerRandomMode randomMode;

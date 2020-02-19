@@ -92,7 +92,7 @@
                         <Button x:Name="btnNext" Width="40" Content="下一首" Click="BtnNext_Click"/>
                     </StackPanel>
                     <Slider Grid.Column="1" x:Name="sliderProgress" VerticalAlignment="Center" Thumb.DragCompleted="SliderProgress_DragCompleted"/>
-                    <Slider Grid.Column="2" x:Name="sliderVolume" VerticalAlignment="Center"/>
+                    <Slider Grid.Column="2" x:Name="sliderVolume" VerticalAlignment="Center" Thumb.DragDelta="sliderVolume_DragDelta" Maximum="1"/>
                 </Grid>
             </Grid>
         </Grid>

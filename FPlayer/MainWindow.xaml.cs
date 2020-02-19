@@ -95,6 +95,7 @@ namespace FPlayer
             }
             setRandomMode(playerDB.RandomMode);
             setLoopMode(playerDB.loopMode);
+            sliderVolume.Value = playerDB.volume;
             playerDB.checkDB();
             if (playerDB.playlists.Count > 0)
             {
@@ -124,6 +125,7 @@ namespace FPlayer
                 audioPlayer = new WaveOutEvent();
                 //audioPlayer.PlaybackStopped += AudioPlayer_PlaybackStopped;
             }
+            audioPlayer.Volume = playerDB.volume;
 
             timerProgress = new Timer();
             timerProgress.Interval = 1000;
@@ -545,6 +547,12 @@ namespace FPlayer
                     }
                 }
             }
+        }
+
+        private void sliderVolume_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+        {
+            playerDB.volume = (float)sliderVolume.Value;
+            audioPlayer.Volume = playerDB.volume;
         }
     }
 }
