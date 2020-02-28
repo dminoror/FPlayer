@@ -96,6 +96,7 @@ namespace FPlayer
             setRandomMode(playerDB.RandomMode);
             setLoopMode(playerDB.loopMode);
             sliderVolume.Value = playerDB.volume;
+            checkAutoPause.IsChecked = playerDB.autoPause;
             playerDB.checkDB();
             if (playerDB.playlists.Count > 0)
             {
@@ -137,16 +138,16 @@ namespace FPlayer
 
         private void TimerProgress_Elapsed(object sender, ElapsedEventArgs e)
         {
-            if (audioPlayerItem != null)
-            {
-                Dispatcher.Invoke((Action)delegate () {
+            Dispatcher.Invoke((Action)delegate () {
+                if (audioPlayerItem != null)
+                {
                     sliderProgress.Value = audioPlayerItem.Position;
                     if (audioPlayerItem.Length - audioPlayerItem.Position < 1)
                     {
                         BtnNext_Click(null, null);
                     }
-                });
-            }
+                }
+            });
         }
 
         void activeAutoPauseTimer(object sender, ElapsedEventArgs e)
@@ -160,6 +161,10 @@ namespace FPlayer
         private void TimerAutoPause_Elapsed(object sender, ElapsedEventArgs e)
         {
             Dispatcher.Invoke((Action)delegate () {
+                if (!playerDB.autoPause)
+                {
+                    return;
+                }
                 using (MMDevice defaultDevice = devEnum.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia))
                 {
                     bool foundOtherVolume = false;
@@ -240,6 +245,10 @@ namespace FPlayer
         }
         private void OnKeyPressed(object sender, GlobalKeyboardHookEventArgs e)
         {
+            if (!playerDB.autoPause)
+            {
+                return;
+            }
             System.Windows.Forms.Keys key = (System.Windows.Forms.Keys)e.KeyboardData.VirtualCode;
             if (e.KeyboardState == GlobalKeyboardHook.KeyboardState.KeyDown)
             {
@@ -352,6 +361,19 @@ namespace FPlayer
                 int realIndex = playerDB.playlist.list.IndexOf(playitem);
                 listItems.SelectedIndex = realIndex;
             }
+            /*
+            audioPlayerItem = new AudioFileReader(playitem.path);
+            BufferedWaveProvider buffered = new BufferedWaveProvider(audioPlayerItem.WaveFormat);
+            byte[] sample = new byte[audioPlayerItem.Length];
+            audioPlayerItem.Read(sample, 0, sample.Length);
+            buffered.BufferLength = sample.Length;
+            buffered.AddSamples(sample, 0, sample.Length);
+            buffered.BufferDuration = audioPlayerItem.TotalTime;
+            audioPlayerItem.Dispose();
+            audioPlayerItem = null;
+            audioPlayer.Init(buffered);
+            return;*/
+            
             audioPlayerItem = new AudioFileReader(playitem.path);
             sliderProgress.Maximum = audioPlayerItem.Length;
             playerItemTrack = new Track(playitem.path);
@@ -377,7 +399,8 @@ namespace FPlayer
 
                     }
                 }
-             }
+            }
+            
             audioPlayer.Init(audioPlayerItem);
         }
         void play()
@@ -553,6 +576,11 @@ namespace FPlayer
         {
             playerDB.volume = (float)sliderVolume.Value;
             audioPlayer.Volume = playerDB.volume;
+        }
+
+        private void checkAutoPause_Chceked(object sender, RoutedEventArgs e)
+        {
+            playerDB.autoPause = checkAutoPause.IsChecked.Value;
         }
     }
 }

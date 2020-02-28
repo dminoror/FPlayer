@@ -21,6 +21,7 @@ namespace FPlayer
         public int playitemIndex = 0;
         public PlayerLoopMode loopMode;
         private PlayerRandomMode randomMode;
+        public bool autoPause = false;
 
         public List<PauseIgnore> ignores;
         [JsonIgnore]

@@ -73,7 +73,7 @@
                             <RowDefinition Height="*"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <CheckBox VerticalAlignment="Center" HorizontalAlignment="Center" Content="自動暫停"/>
+                        <CheckBox x:Name="checkAutoPause" VerticalAlignment="Center" HorizontalAlignment="Center" Content="自動暫停" Checked="checkAutoPause_Chceked" Unchecked="checkAutoPause_Chceked"/>
                         <Button Grid.Row="1" Content="設定" Click="btnAutoPauseOption_Clicked"/>
                     </Grid>
                 </Grid>

@@ -12,7 +12,6 @@ C:\Users\DoubleLight\Desktop\Tool\FPlayer\FPlayer\obj\Debug\MainWindow.baml
 C:\Users\DoubleLight\Desktop\Tool\FPlayer\FPlayer\obj\Debug\FPlayer.g.resources
 C:\Users\DoubleLight\Desktop\Tool\FPlayer\FPlayer\obj\Debug\FPlayer.Properties.Resources.resources
 C:\Users\DoubleLight\Desktop\Tool\FPlayer\FPlayer\obj\Debug\FPlayer.csproj.GenerateResource.cache
-C:\Users\DoubleLight\Desktop\Tool\FPlayer\FPlayer\obj\Debug\FPlayer.csproj.CoreCompileInputs.cache
 C:\Users\DoubleLight\Desktop\Tool\FPlayer\FPlayer\obj\Debug\FPlayer.csproj.CopyComplete
 C:\Users\DoubleLight\Desktop\Tool\FPlayer\FPlayer\obj\Debug\FPlayer.exe
 C:\Users\DoubleLight\Desktop\Tool\FPlayer\FPlayer\obj\Debug\FPlayer.pdb
