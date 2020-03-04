@@ -101,23 +101,30 @@ namespace FPlayer
             if (playerDB.playlists.Count > 0)
             {
                 playerDB.playlist = playerDB.playlists[0];
-                for (int index = 0; index < playerDB.playlist.list.Count; index++)
-                {
-                    fpPlayItem playitem = playerDB.playlist.list[index];
-                    if (File.Exists(playitem.path))
-                    {
-                        Track track = new Track(playitem.path);
-                        playitem.Name = track.Title;
-                        playitem.Artist = track.Artist;
-                        playitem.Album = track.Album;
-                    }
-                    else
-                    {
-                        playerDB.playlist.list.Remove(playitem);
-                        continue;
-                    }
-                }
                 listItems.ItemsSource = playerDB.playlist.list;
+                System.Threading.ThreadPool.QueueUserWorkItem(o =>
+                {
+                    for (int index = 0; index < playerDB.playlist.list.Count; index++)
+                    {
+                        fpPlayItem playitem = playerDB.playlist.list[index];
+                        if (File.Exists(playitem.path))
+                        {
+                            Track track = new Track(playitem.path);
+                            playitem.Name = track.Title;
+                            playitem.Artist = track.Artist;
+                            playitem.Album = track.Album;
+                        }
+                        else
+                        {
+                            playerDB.playlist.list.Remove(playitem);
+                            continue;
+                        }
+                        Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            listItems.Items.Refresh();
+                        }));
+                    }
+                });
             }
             playerDB.playlistIndex = 0;
 
@@ -361,6 +368,7 @@ namespace FPlayer
                 int realIndex = playerDB.playlist.list.IndexOf(playitem);
                 listItems.SelectedIndex = realIndex;
             }
+            listItems.ScrollIntoView(listItems.Items[listItems.SelectedIndex]);
             /*
             audioPlayerItem = new AudioFileReader(playitem.path);
             BufferedWaveProvider buffered = new BufferedWaveProvider(audioPlayerItem.WaveFormat);
@@ -373,7 +381,7 @@ namespace FPlayer
             audioPlayerItem = null;
             audioPlayer.Init(buffered);
             return;*/
-            
+
             audioPlayerItem = new AudioFileReader(playitem.path);
             sliderProgress.Maximum = audioPlayerItem.Length;
             playerItemTrack = new Track(playitem.path);
