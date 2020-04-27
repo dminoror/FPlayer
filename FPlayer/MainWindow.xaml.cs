@@ -34,9 +34,13 @@ namespace FPlayer
         PlayerState playerState = PlayerState.Stop;
 
         Timer timerProgress;
+        double savedCurrentPosition = 0;
+        int checkNextTimer = 0;
+
         Timer timerAutoPause = null;
         DateTime autoPauseTime;
         double autoPauseGap = 3;
+
         
         string DBPath = "playlistDB.json";
         FPlayerDataBase playerDB;
@@ -131,10 +135,10 @@ namespace FPlayer
             if (audioPlayer == null)
             {
                 audioPlayer = new WaveOutEvent();
-                //audioPlayer.PlaybackStopped += AudioPlayer_PlaybackStopped;
+                audioPlayer.PlaybackStopped += AudioPlayer_PlaybackStopped;
             }
             audioPlayer.Volume = playerDB.volume;
-
+            
             timerProgress = new Timer();
             timerProgress.Interval = 1000;
             timerProgress.AutoReset = true;
@@ -148,13 +152,37 @@ namespace FPlayer
             Dispatcher.Invoke((Action)delegate () {
                 if (audioPlayerItem != null)
                 {
-                    sliderProgress.Value = audioPlayerItem.Position;
+                    sliderProgress.Value = audioPlayerItem.Position;/*
                     if (audioPlayerItem.Length - audioPlayerItem.Position < 1)
                     {
                         BtnNext_Click(null, null);
                     }
+                    else
+                    {
+                        if (savedCurrentPosition == audioPlayerItem.Position && playerState == PlayerState.Playing)
+                        {
+                            checkNextTimer++;
+                            if (checkNextTimer >= 3)
+                            {
+                                checkNextTimer = 0;
+                                BtnNext_Click(null, null);
+                            }
+                        }
+                        else
+                        {
+                            checkNextTimer = 0;
+                            savedCurrentPosition = audioPlayerItem.Position;
+                        }
+                    }*/
                 }
             });
+        }
+        private void AudioPlayer_PlaybackStopped(object sender, StoppedEventArgs e)
+        {
+            if (audioPlayerItem.Position > 10)
+            {
+                BtnNext_Click(null, null);
+            }
         }
 
         void activeAutoPauseTimer(object sender, ElapsedEventArgs e)
@@ -369,18 +397,6 @@ namespace FPlayer
                 listItems.SelectedIndex = realIndex;
             }
             listItems.ScrollIntoView(listItems.Items[listItems.SelectedIndex]);
-            /*
-            audioPlayerItem = new AudioFileReader(playitem.path);
-            BufferedWaveProvider buffered = new BufferedWaveProvider(audioPlayerItem.WaveFormat);
-            byte[] sample = new byte[audioPlayerItem.Length];
-            audioPlayerItem.Read(sample, 0, sample.Length);
-            buffered.BufferLength = sample.Length;
-            buffered.AddSamples(sample, 0, sample.Length);
-            buffered.BufferDuration = audioPlayerItem.TotalTime;
-            audioPlayerItem.Dispose();
-            audioPlayerItem = null;
-            audioPlayer.Init(buffered);
-            return;*/
 
             audioPlayerItem = new AudioFileReader(playitem.path);
             sliderProgress.Maximum = audioPlayerItem.Length;
@@ -408,13 +424,22 @@ namespace FPlayer
                     }
                 }
             }
-            
             audioPlayer.Init(audioPlayerItem);
+            play();
         }
         void play()
         {
             btnPausePlay.Content = "暫停";
-            audioPlayer.Play();
+            try
+            {
+                audioPlayer.Play();
+            }
+            catch(Exception ex)
+            {
+                audioPlayer = new WaveOutEvent();
+                audioPlayer.Init(audioPlayerItem);
+                audioPlayer.Play();
+            }
             playerState = PlayerState.Playing;
         }
         void pause()
@@ -458,11 +483,7 @@ namespace FPlayer
                     break;
             }
         }
-        /*
-        private void AudioPlayer_PlaybackStopped(object sender, StoppedEventArgs e)
-        {
-        }
-        */
+        
 
         private void BtnPausePlay_Click(object sender, RoutedEventArgs e)
         {
@@ -477,7 +498,10 @@ namespace FPlayer
                 {
                     loadPlayerItem();
                 }
-                play();
+                else
+                {
+                    play();
+                }
             }
         }
         private void BtnPrev_Click(object sender, RoutedEventArgs e)
@@ -488,7 +512,6 @@ namespace FPlayer
                 playerDB.playitemIndex = playerDB.playlist.list.Count - 1;
             }
             loadPlayerItem();
-            play();
         }
         private void BtnNext_Click(object sender, RoutedEventArgs e)
         {
@@ -507,7 +530,6 @@ namespace FPlayer
                 }
             }
             loadPlayerItem();
-            play();
         }
         private void BtnStop_Click(object sender, RoutedEventArgs e)
         {
@@ -547,7 +569,6 @@ namespace FPlayer
             }
             audioPlayer.Stop();
             loadPlayerItem();
-            play();
         }
 
         private void listItems_KeyDown(object sender, KeyEventArgs e)
@@ -574,7 +595,6 @@ namespace FPlayer
                             playerDB.playitemIndex = 0;
                         }
                         loadPlayerItem();
-                        play();
                     }
                 }
             }
