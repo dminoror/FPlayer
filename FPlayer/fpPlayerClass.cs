@@ -13,7 +13,21 @@ namespace FPlayer
         public List<fpPlaylist> playlists;
         public int playlistIndex = 0;
         [JsonIgnore]
-        public fpPlaylist playlist;
+        public fpPlaylist currentPlaylist
+        {
+            get
+            {
+                return playlists[playlistIndex];
+            }
+        }
+        [JsonIgnore]
+        public fpPlayItem currentPlayitem
+        {
+            get
+            {
+                return currentPlaylist.list[playitemIndex];
+            }
+        }
         [JsonIgnore]
         public fpPlayItem[] randomList;
 
@@ -47,11 +61,7 @@ namespace FPlayer
         }
         public void newRandomList()
         {
-            if (playlist == null)
-            {
-                playlist = playlists[playlistIndex];
-            }
-            randomList = playlist.list.ToArray<fpPlayItem>();
+            randomList = currentPlaylist.list.ToArray<fpPlayItem>();
             Random randomer = new Random();
             for (int i = 0; i < randomList.Length; i++)
             {
@@ -71,7 +81,7 @@ namespace FPlayer
             }
             else
             {
-                return playlist.list[playitemIndex];
+                return currentPlaylist.list[playitemIndex];
             }
         }
     }
@@ -79,6 +89,11 @@ namespace FPlayer
     {
         public string name;
         public List<fpPlayItem> list = new List<fpPlayItem>();
+
+        public override string ToString()
+        {
+            return name;
+        }
     }
     public class fpPlayItem
     {

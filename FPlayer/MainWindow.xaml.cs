@@ -44,6 +44,7 @@ namespace FPlayer
         
         string DBPath = "playlistDB.json";
         FPlayerDataBase playerDB;
+        fpPlaylist displayPlaylist;
 
         GlobalKeyboardHook hooker;
 
@@ -57,7 +58,7 @@ namespace FPlayer
         private void Window_Drop(object sender, DragEventArgs e)
         {
             if (playerDB.playlistIndex >= playerDB.playlists.Count) { return; }
-            fpPlaylist playlist = playerDB.playlists[playerDB.playlistIndex];
+            fpPlaylist playlist = displayPlaylist;
             int savedCount = playlist.list.Count;
             var paths = ((System.Array)e.Data.GetData(DataFormats.FileDrop));
             if (paths == null) { return; }
@@ -89,6 +90,22 @@ namespace FPlayer
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            /*
+            var url = "https://raw.githubusercontent.com/dohProject/DLCachePlayer/master/DLCachePlayerDemo/Sample/3.%20Departures%20(alac%20file).m4a";
+            using (var mf = new MediaFoundationReader(url))
+            {
+                using (var wo = new WaveOutEvent())
+                {
+                    wo.Init(mf);
+                    wo.Play();
+                    while (wo.PlaybackState == PlaybackState.Playing)
+                    {
+                        System.Threading.Thread.Sleep(1000);
+                    }
+                }
+            }
+            */
+
             if (File.Exists(DBPath))
             {
                 readDB();
@@ -104,33 +121,11 @@ namespace FPlayer
             playerDB.checkDB();
             if (playerDB.playlists.Count > 0)
             {
-                playerDB.playlist = playerDB.playlists[0];
-                listItems.ItemsSource = playerDB.playlist.list;
-                System.Threading.ThreadPool.QueueUserWorkItem(o =>
-                {
-                    for (int index = 0; index < playerDB.playlist.list.Count; index++)
-                    {
-                        fpPlayItem playitem = playerDB.playlist.list[index];
-                        if (File.Exists(playitem.path))
-                        {
-                            Track track = new Track(playitem.path);
-                            playitem.Name = track.Title;
-                            playitem.Artist = track.Artist;
-                            playitem.Album = track.Album;
-                        }
-                        else
-                        {
-                            playerDB.playlist.list.Remove(playitem);
-                            continue;
-                        }
-                        Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            listItems.Items.Refresh();
-                        }));
-                    }
-                });
+                displayPlaylist = playerDB.currentPlaylist;
+                listItems.ItemsSource = displayPlaylist.list;
+                listPlaylist.ItemsSource = playerDB.playlists;
+                loadPlayitemMetadata();
             }
-            playerDB.playlistIndex = 0;
 
             if (audioPlayer == null)
             {
@@ -147,6 +142,32 @@ namespace FPlayer
             activeAutoPauseTimer(null, null);
         }
 
+        void loadPlayitemMetadata()
+        {
+            System.Threading.ThreadPool.QueueUserWorkItem(o =>
+            {
+                for (int index = 0; index < displayPlaylist.list.Count; index++)
+                {
+                    fpPlayItem playitem = displayPlaylist.list[index];
+                    if (File.Exists(playitem.path))
+                    {
+                        Track track = new Track(playitem.path);
+                        playitem.Name = track.Title;
+                        playitem.Artist = track.Artist;
+                        playitem.Album = track.Album;
+                    }
+                    else
+                    {
+                        //playerDB.currentPlaylist.list.Remove(playitem);
+                        continue;
+                    }
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        listItems.Items.Refresh();
+                    }));
+                }
+            });
+        }
         private void TimerProgress_Elapsed(object sender, ElapsedEventArgs e)
         {
             Dispatcher.Invoke((Action)delegate () {
@@ -343,7 +364,10 @@ namespace FPlayer
                 {
                     playitemIndex = playerDB.playitemIndex;
                     fpPlayItem playItem = playerDB.randomList[playitemIndex];
-                    playerDB.playitemIndex = playerDB.playlist.list.IndexOf(playItem);
+                    if (displayPlaylist == playerDB.currentPlaylist)
+                        playerDB.playitemIndex = playerDB.currentPlaylist.list.IndexOf(playItem);
+                    else
+                        playerDB.playitemIndex = 0;
                 }
                 string jsonString = JsonConvert.SerializeObject(playerDB);
                 writer.Write(jsonString);
@@ -373,7 +397,7 @@ namespace FPlayer
             {
                 if (listItems.SelectedIndex == -1)
                 {
-                    playitem = playerDB.playlist.list[playerDB.playitemIndex];
+                    playitem = playerDB.currentPlayitem;
                     listItems.SelectedIndex = playerDB.playitemIndex;
                     if (playerDB.RandomMode == PlayerRandomMode.Random)
                     {
@@ -382,21 +406,26 @@ namespace FPlayer
                 }
                 else
                 {
-                    playitem = playerDB.playlist.list[listItems.SelectedIndex];
+                    playitem = playerDB.currentPlaylist.list[listItems.SelectedIndex];
                 }
             }
             else if (playerDB.RandomMode == PlayerRandomMode.Sequential)
             {
-                playitem = playerDB.playlist.list[playerDB.playitemIndex];
-                listItems.SelectedIndex = playerDB.playitemIndex;
+                playitem = playerDB.currentPlayitem;
+                if (displayPlaylist == playerDB.currentPlaylist)
+                    listItems.SelectedIndex = playerDB.playitemIndex;
             }
             else
             {
                 playitem = playerDB.randomList[playerDB.playitemIndex];
-                int realIndex = playerDB.playlist.list.IndexOf(playitem);
-                listItems.SelectedIndex = realIndex;
+                if (displayPlaylist == playerDB.currentPlaylist)
+                {
+                    int realIndex = playerDB.currentPlaylist.list.IndexOf(playitem);
+                    listItems.SelectedIndex = realIndex;
+                }
             }
-            listItems.ScrollIntoView(listItems.Items[listItems.SelectedIndex]);
+            if (displayPlaylist == playerDB.currentPlaylist)
+                listItems.ScrollIntoView(listItems.Items[listItems.SelectedIndex]);
 
             audioPlayerItem = new AudioFileReader(playitem.path);
             sliderProgress.Maximum = audioPlayerItem.Length;
@@ -509,7 +538,7 @@ namespace FPlayer
             playerDB.playitemIndex--;
             if (playerDB.playitemIndex < 0)
             {
-                playerDB.playitemIndex = playerDB.playlist.list.Count - 1;
+                playerDB.playitemIndex = playerDB.currentPlaylist.list.Count - 1;
             }
             loadPlayerItem();
         }
@@ -517,13 +546,13 @@ namespace FPlayer
         {
             fpPlayItem playitem = playerDB.getCurrentItem();
             playerDB.playitemIndex++;
-            if (playerDB.playitemIndex >= playerDB.playlist.list.Count)
+            if (playerDB.playitemIndex >= playerDB.currentPlaylist.list.Count)
             {
                 playerDB.playitemIndex = 0;
                 if (playerDB.RandomMode == PlayerRandomMode.Random)
                 {
                     playerDB.newRandomList();
-                    if (playerDB.randomList[0] == playitem && playerDB.playlist.list.Count > 1)
+                    if (playerDB.randomList[0] == playitem && playerDB.currentPlaylist.list.Count > 1)
                     {
                         playerDB.playitemIndex++;
                     }
@@ -558,9 +587,14 @@ namespace FPlayer
 
         private void ListItems_DoubleClicked(object sender, MouseButtonEventArgs e)
         {
+            if (displayPlaylist != playerDB.currentPlaylist)
+            {
+                playerDB.playlistIndex = playerDB.playlists.IndexOf(displayPlaylist);
+                playerDB.newRandomList();
+            }
             if (playerDB.RandomMode == PlayerRandomMode.Random)
             {
-                fpPlayItem playitem = playerDB.playlist.list[listItems.SelectedIndex];
+                fpPlayItem playitem = playerDB.currentPlaylist.list[listItems.SelectedIndex];
                 playerDB.playitemIndex = Array.IndexOf(playerDB.randomList, playitem);
             }
             else
@@ -577,7 +611,7 @@ namespace FPlayer
             {
                 if (listItems.SelectedIndex >= 0)
                 {
-                    fpPlaylist playlist = playerDB.playlists[playerDB.playlistIndex];
+                    fpPlaylist playlist = displayPlaylist;
                     fpPlayItem playItem = playlist.list[listItems.SelectedIndex];
                     bool shouldResume = false;
                     if (playerDB.getCurrentItem() == playItem)
@@ -609,6 +643,40 @@ namespace FPlayer
         private void checkAutoPause_Chceked(object sender, RoutedEventArgs e)
         {
             playerDB.autoPause = checkAutoPause.IsChecked.Value;
+        }
+
+        private void listPlaylist_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            displayPlaylist = playerDB.playlists[listPlaylist.SelectedIndex];
+            listItems.ItemsSource = displayPlaylist.list;
+            loadPlayitemMetadata();
+        }
+
+        private void btnAddPlaylist_Clicked(object sender, RoutedEventArgs e)
+        {
+            InputDialog dialog = new InputDialog(DialogType.Create, null);
+            bool result = dialog.ShowDialog() == true;
+            if (result)
+            {
+                string name = dialog.tbInput1.Text;
+                fpPlaylist playlist = new fpPlaylist()
+                {
+                    name = name
+                };
+                playerDB.playlists.Add(playlist);
+                writeDB();
+                listPlaylist.Items.Refresh();
+            }
+        }
+        private void btnRemovePlaylist_Clicked(object sender, RoutedEventArgs e)
+        {
+            if (listPlaylist.SelectedIndex < 0 || listPlaylist.SelectedIndex >= playerDB.playlists.Count) { return; }
+            bool result = MessageBox.Show("確定要刪除?") == MessageBoxResult.OK;
+            if (result)
+            {
+                playerDB.playlists.RemoveAt(listPlaylist.SelectedIndex);
+                listPlaylist.Items.Refresh();
+            }
         }
     }
 }

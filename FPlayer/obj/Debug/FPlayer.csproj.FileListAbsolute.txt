@@ -71,3 +71,5 @@ C:\Users\Miku\Desktop\Tool\FPlayer\FPlayer\obj\Debug\FPlayer.csproj.GenerateReso
 C:\Users\Miku\Desktop\Tool\FPlayer\FPlayer\obj\Debug\FPlayer.csproj.CopyComplete
 C:\Users\Miku\Desktop\Tool\FPlayer\FPlayer\obj\Debug\FPlayer.exe
 C:\Users\Miku\Desktop\Tool\FPlayer\FPlayer\obj\Debug\FPlayer.pdb
+C:\Users\Miku\Desktop\Tool\FPlayer\FPlayer\obj\Debug\InputDialog.g.cs
+C:\Users\Miku\Desktop\Tool\FPlayer\FPlayer\obj\Debug\InputDialog.baml
