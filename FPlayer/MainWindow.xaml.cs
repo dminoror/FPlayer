@@ -6,18 +6,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace FPlayer
 {
@@ -439,12 +432,13 @@ namespace FPlayer
                 using (var ms = new MemoryStream(pic.PictureData))
                 {
                     try
-                    {
+                    { 
                         var bi = new BitmapImage();
                         bi.BeginInit();
                         bi.CacheOption = BitmapCacheOption.OnLoad;
                         bi.StreamSource = ms;
                         bi.EndInit();
+                        bi.Freeze();
                         imageCover.Source = bi;
                     }
                     catch (Exception ex)
@@ -614,7 +608,7 @@ namespace FPlayer
                     fpPlaylist playlist = displayPlaylist;
                     fpPlayItem playItem = playlist.list[listItems.SelectedIndex];
                     bool shouldResume = false;
-                    if (playerDB.getCurrentItem() == playItem)
+                    if (playerDB.getCurrentItem() == playItem && playerState == PlayerState.Playing)
                     {
                         stop();
                         shouldResume = true;
