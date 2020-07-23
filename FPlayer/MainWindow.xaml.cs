@@ -300,6 +300,7 @@ namespace FPlayer
             {
                 return;
             }
+            return;
             System.Windows.Forms.Keys key = (System.Windows.Forms.Keys)e.KeyboardData.VirtualCode;
             if (e.KeyboardState == GlobalKeyboardHook.KeyboardState.KeyDown)
             {

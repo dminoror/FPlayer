@@ -55,7 +55,7 @@ namespace FPlayer
         }
         private void btnOption_Clicked(object sender, RoutedEventArgs e)
         {
-            if (listIgnore.SelectedIndex >= 0)
+            if (listIgnore.SelectedIndex >= 0 && listIgnore.SelectedIndex < db.recentlyIgnores.Count)
             {
                 PauseIgnore ignore = db.recentlyIgnores[listIgnore.SelectedIndex];
                 IgnoreOption page = new IgnoreOption(ignore);
